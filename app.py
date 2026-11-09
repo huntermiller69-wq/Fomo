@@ -51,6 +51,7 @@ def model_probability(d):
     sigma=0.0007*math.sqrt(seconds/900)
     z=math.log(float(d["spot"])/float(d["strike"]))/max(sigma,0.00001)
     return max(.01,min(.99,.5*(1+math.erf(z/math.sqrt(2)))))
+PAPER_ENTRIES_ENABLED = False  # paused until Coinbase contract, benchmark, quotes and fees are reconciled
 def paper_cycle():
     with LOCK:
         c=connect()
@@ -66,6 +67,7 @@ def paper_cycle():
                     c.commit()
                 except Exception:continue
             try:
+                if not PAPER_ENTRIES_ENABLED: return
                 d=snapshot();p=model_probability(d)
                 if p is not None and d["seconds_left"]>=120:
                     # 8 percentage-point minimum gross model edge; no assumed fee discount.
@@ -84,7 +86,7 @@ def stats():
     try:
         rows=c.execute("SELECT ticker,side,entry,contracts,cost,opened,status,result,pnl,model_probability FROM trades ORDER BY opened DESC LIMIT 100").fetchall()
         settled=[r for r in rows if r[6]=="settled"]
-        return {"starting_balance":1000,"settled_count":len(settled),"wins":sum(r[8]>0 for r in settled),"net_pnl":round(sum(r[8] for r in settled),2),"open_count":sum(r[6]=="open" for r in rows),"trades":[dict(zip(("ticker","side","entry","contracts","cost","opened","status","result","pnl","model_probability"),r)) for r in rows],"storage":"temporary; resets if hosting instance is replaced","fees":"not included; reported profit is gross, not net"}
+        return {"starting_balance":1000,"settled_count":len(settled),"wins":sum(r[8]>0 for r in settled),"net_pnl":round(sum(r[8] for r in settled),2),"open_count":sum(r[6]=="open" for r in rows),"trades":[dict(zip(("ticker","side","entry","contracts","cost","opened","status","result","pnl","model_probability"),r)) for r in rows],"storage":"temporary; resets if hosting instance is replaced","fees":"not included; reported profit is gross, not net","entries_paused":True,"verification":"UNVERIFIED - not Coinbase-reconciled"}
     finally:c.close()
 def worker():
     while True:
