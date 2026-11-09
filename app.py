@@ -17,7 +17,7 @@ def snapshot():
     ms=[m for m in data.get("markets",[]) if m.get("close_time") and m.get("status")=="active" or m.get("status")=="open"]
     ms=sorted(ms,key=lambda m:m.get("close_time",""))
     for m in ms:
-        try:
+        if True:
             from datetime import datetime
             close=datetime.fromisoformat(m["close_time"].replace("Z","+00:00")).timestamp()
             if close<=now:continue
