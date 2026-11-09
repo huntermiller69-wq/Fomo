@@ -11,6 +11,9 @@ def price(x):
         v=float(x)
         return round(v/100,4) if v>1 else round(v,4)
     except:return None
+def spot():
+    d=fetch("https://api.coinbase.com/v2/prices/BTC-USD/spot")
+    return float(d["data"]["amount"])
 def snapshot():
     data=fetch(API+"/markets?series_ticker=KXBTC15M&status=open&limit=100")
     now=time.time()
@@ -31,8 +34,11 @@ def snapshot():
                 vals=[price(p[0]) if side+"_dollars" not in ob else float(p[0]) for p in levels]
                 return max(vals)
             yb,nb=best("yes"),best("no")
-            return {"ticker":ticker,"strike":strike,"close_time":m["close_time"],"seconds_left":round(close-now),"yes_ask":round(1-nb,4) if nb is not None else None,"no_ask":round(1-yb,4) if yb is not None else None,"source":"Kalshi public market API","asof":int(now)}
+            return {"spot":safe_spot(),"spread":round((1-nb)+(1-yb)-1,4) if nb is not None and yb is not None else None,"ticker":ticker,"strike":strike,"close_time":m["close_time"],"seconds_left":round(close-now),"yes_ask":round(1-nb,4) if nb is not None else None,"no_ask":round(1-yb,4) if yb is not None else None,"source":"Kalshi public market API","asof":int(now)}
     raise ValueError("No active KXBTC15M contract with a published strike")
+def safe_spot():
+    try:return spot()
+    except:return None
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
